@@ -42,9 +42,14 @@ parser.add_argument(
     help='source file, list of newline-delimited sentences or phrases, e.g. sentences.csv'
 )
 parser.add_argument(
-    'output_path',
-    metavar='OUTPUT',
-    help='output path, e.g. model.d2v'
+    'output_model',
+    metavar='OUTPUT_MODEL',
+    help='model output path, e.g. model.d2v'
+)
+parser.add_argument(
+    'output_vectors',
+    metavar='OUTPUT_VECTORS',
+    help='vector output path in word2vec format, e.g. sentences.vec'
 )
 
 args = parser.parse_args()
@@ -73,11 +78,11 @@ model = Doc2Vec(
 model.build_vocab(tagged)
 
 for epoch in range(args.epochs):
-    print('> {}/{}'.format(epoch, args.epochs), end='\r')
+    print('> {}/{}'.format(epoch + 1, args.epochs), end='\r')
     model.train(
         tagged,
         total_examples=model.corpus_count,
-        epochs=model.iter
+        epochs=model.epochs
     )
     # decrease the learning rate, improves single label performance
     # https://rare-technologies.com/doc2vec-tutorial/
@@ -85,4 +90,7 @@ for epoch in range(args.epochs):
     model.min_alpha = model.alpha
 
 print('saving d2v model')
-model.save(args.output_path)
+model.save(args.output_model)
+
+print('saving sentence/phrase vectors')
+model.docvecs.save_word2vec_format(args.output_vectors)
