@@ -55,19 +55,21 @@ parser.add_argument(
 args = parser.parse_args()
 print(args)
 
-print('loading sentences/phrases')
+print('loading lines', end='\r')
 with open(args.input_path) as f:
     sentences = f.read().splitlines()
+print('loaded {} lines'.format(len(sentences)))
 
-print('tagging sentences/phrases')
+print('tagging lines', end='\r')
 tagged = [
     TaggedDocument(
         words=word_tokenize(_d.lower()),
         tags=[str(i)]
     ) for i, _d in enumerate(sentences)
 ]
+print('tagged {} sentences'.format(len(tagged)))
 
-print('training d2v model')
+print('training model', end='\r')
 model = Doc2Vec(
     vector_size=args.vector_size,
     alpha=args.alpha,
@@ -78,7 +80,7 @@ model = Doc2Vec(
 model.build_vocab(tagged)
 
 for epoch in range(args.epochs):
-    print('> {}/{}'.format(epoch + 1, args.epochs), end='\r')
+    print('training > {}/{}'.format(epoch + 1, args.epochs), end='\r')
     model.train(
         tagged,
         total_examples=model.corpus_count,
@@ -88,10 +90,12 @@ for epoch in range(args.epochs):
     # https://rare-technologies.com/doc2vec-tutorial/
     model.alpha -= args.decay
     model.min_alpha = model.alpha
+print('trained {} epochs'.format(args.epochs))
 
-print('saving d2v model')
+print('saving d2v model', end='\r')
 model.save(args.output_model)
+print('saved d2v model')
 
-print('saving sentence/phrase vectors')
+print('saving vectors', end='\r')
 model.docvecs.save_word2vec_format(args.output_vectors, write_first_line=False)
-
+print('saved vectors')
