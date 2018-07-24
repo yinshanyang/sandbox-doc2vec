@@ -93,4 +93,5 @@ print('saving d2v model')
 model.save(args.output_model)
 
 print('saving sentence/phrase vectors')
-model.docvecs.save_word2vec_format(args.output_vectors)
+model.docvecs.save_word2vec_format(args.output_vectors, write_first_line=False)
+
