@@ -55,19 +55,26 @@ parser.add_argument(
 args = parser.parse_args()
 print(args)
 
-print('loading lines', end='\r')
+
+print('loading lines')
 with open(args.input_path) as f:
     sentences = f.read().splitlines()
 print('loaded {} lines'.format(len(sentences)))
 
-print('tagging lines', end='\r')
+print('tokenizing lines')
+tokenizer = RegexpTokenizer(r'\w+')
+stops = stopwords.words('english')
+tokens = [[word for word in tokenizer.tokenize(sentence.lower()) if word not in stops and len(word) > 2] for sentence in sentences]
+print('tokenized {} lines'.format(len(tokens)))
+
+print('tagging sentences/phrases')
 tagged = [
     TaggedDocument(
-        words=word_tokenize(_d.lower()),
+        words=d,
         tags=[str(i)]
-    ) for i, _d in enumerate(sentences)
+    ) for i, d in enumerate(tokens)
 ]
-print('tagged {} sentences'.format(len(tagged)))
+print('tagging lines', end='\r')
 
 print('training model', end='\r')
 model = Doc2Vec(
