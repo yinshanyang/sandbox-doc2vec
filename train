@@ -26,7 +26,7 @@ parser.add_argument(
     type=float,
     metavar='ALPHA',
     help='learning rate (default: 0.025)',
-    default=300
+    default=0.025
 )
 parser.add_argument(
     '--decay',
