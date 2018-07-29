@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import RegexpTokenizer
+from nltk.corpus import stopwords
 import argparse
 
 parser = argparse.ArgumentParser(description='doc2vec model trainer')
@@ -80,24 +81,35 @@ print('training model', end='\r')
 model = Doc2Vec(
     vector_size=args.vector_size,
     alpha=args.alpha,
+    epochs=args.epochs,
     min_alpha=0.00025,
-    min_count=1,
-    dm=1
+    dm=1,
+    dm_concat=0,
+    window=5,
+    negative=5,
+    hs=0,
+    min_count=2,
+    sample=0
 )
 model.build_vocab(tagged)
 
-for epoch in range(args.epochs):
-    print('training > {}/{}'.format(epoch + 1, args.epochs), end='\r')
-    model.train(
-        tagged,
-        total_examples=model.corpus_count,
-        epochs=model.epochs
-    )
-    # decrease the learning rate, improves single label performance
-    # https://rare-technologies.com/doc2vec-tutorial/
-    model.alpha -= args.decay
-    model.min_alpha = model.alpha
-print('trained {} epochs'.format(args.epochs))
+model.train(
+    tagged,
+    total_examples=model.corpus_count,
+    epochs=model.epochs
+)
+# for epoch in range(args.epochs):
+#     print('training > {}/{}'.format(epoch + 1, args.epochs), end='\r')
+#     model.train(
+#         tagged,
+#         total_examples=model.corpus_count,
+#         epochs=model.epochs
+#     )
+#     # decrease the learning rate, improves single label performance
+#     # https://rare-technologies.com/doc2vec-tutorial/
+#     model.alpha -= args.decay
+#     model.min_alpha = model.alpha
+# print('trained {} epochs'.format(args.epochs))
 
 print('saving d2v model', end='\r')
 model.save(args.output_model)
