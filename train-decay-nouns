@@ -1,0 +1,121 @@
+#!/usr/bin/env python
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+import nltk
+from nltk.tokenize import RegexpTokenizer
+from nltk.corpus import stopwords
+import argparse
+
+parser = argparse.ArgumentParser(description='doc2vec model trainer')
+parser.add_argument(
+    '-e', '--epochs',
+    dest='epochs',
+    type=int,
+    metavar='EPOCHS',
+    help='number of epochs to train the model (default: 100)',
+    default=100
+)
+parser.add_argument(
+    '-d', '--output_dimensions',
+    dest='vector_size',
+    type=int,
+    metavar='DIMENSIONS',
+    help='number of output dimensions to embed (default: 300)',
+    default=300
+)
+parser.add_argument(
+    '-a', '--alpha',
+    dest='alpha',
+    type=float,
+    metavar='ALPHA',
+    help='learning rate (default: 0.025)',
+    default=0.025
+)
+parser.add_argument(
+    '--decay',
+    dest='decay',
+    type=float,
+    metavar='DECAY',
+    help='decay to the learning rate (default: 0.0002)',
+    default=0.0002
+)
+parser.add_argument(
+    'input_path',
+    metavar='INPUT',
+    help='source file, list of newline-delimited sentences or phrases, e.g. sentences.csv'
+)
+parser.add_argument(
+    'output_model',
+    metavar='OUTPUT_MODEL',
+    help='model output path, e.g. model.d2v'
+)
+parser.add_argument(
+    'output_vectors',
+    metavar='OUTPUT_VECTORS',
+    help='vector output path in word2vec format, e.g. sentences.vec'
+)
+
+args = parser.parse_args()
+print(args)
+
+
+print('loading lines')
+with open(args.input_path) as f:
+    sentences = f.read().splitlines()
+print('loaded {} lines'.format(len(sentences)))
+
+print('tokenizing lines')
+tokenizer = RegexpTokenizer(r'\w+')
+stops = stopwords.words('english')
+# seriously, isn’t this ugly?
+tokens = [[word for word in tokenizer.tokenize(sentence.lower()) if word not in stops and len(word) > 2] for sentence in sentences]
+tokens = [[word for word, pos in nltk.pos_tag(line) if (pos == 'NN' or pos == 'NNP' or pos == 'NNS' or pos == 'NNPS')] for line in tokens]
+print(tokens)
+
+print('tokenized {} lines'.format(len(tokens)))
+
+print('tagging sentences/phrases')
+tagged = [
+    TaggedDocument(
+        words=d,
+        tags=[str(i)]
+    ) for i, d in enumerate(tokens)
+]
+print('tagging lines', end='\r')
+
+print('training model', end='\r')
+model = Doc2Vec(
+    vector_size=args.vector_size,
+    alpha=args.alpha,
+    # epochs=args.epochs,
+    min_alpha=0.00025,
+    # dm=1,
+    # dm_concat=0,
+    dbow=1,
+    window=5,
+    negative=5,
+    hs=0,
+    min_count=2,
+    sample=0
+)
+model.build_vocab(tagged)
+
+for epoch in range(args.epochs):
+    print('training > {}/{}'.format(epoch + 1, args.epochs), end='\r')
+    model.train(
+        tagged,
+        total_examples=model.corpus_count,
+        epochs=model.epochs
+    )
+    # decrease the learning rate, improves single label performance
+    # https://rare-technologies.com/doc2vec-tutorial/
+    model.alpha -= args.decay
+    model.min_alpha = model.alpha
+print('trained {} epochs'.format(args.epochs))
+
+print('saving d2v model', end='\r')
+model.save(args.output_model)
+print('saved d2v model')
+
+print('saving vectors', end='\r')
+model.docvecs.save_word2vec_format(args.output_vectors, write_first_line=False)
+print('saved vectors')
